@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
 import cv2
+from matplotlib.animation import FuncAnimation
 
 
 #traitement d'image du labyrinthe
@@ -33,24 +34,13 @@ for col in maze_reduced_v:
 
 maze_final = np.array(cols_reduced).T
 
-maze = [
-[1,1,1,1,1,1,1],
-[1,0,0,0,0,0,1],
-[1,0,1,1,1,0,1],
-[1,0,0,0,1,0,1],
-[1,0,0,0,1,1,1],
-[1,0,0,0,0,0,1],
-[1,1,1,1,1,1,1]
-]
+size = maze_final.shape
 
-array = np.array(maze)
-array = 1 - array
-array.tolist()
-size = array.shape
-
-goal = (3,5)
+goal = (5,11)
 distances = np.full(size, np.inf)
 distances[goal[0]][goal[1]] = 0
+
+frames = []
 
 def floodfill(maze, goal):
     queue = deque([goal])
@@ -58,6 +48,7 @@ def floodfill(maze, goal):
     while queue:
         x,y = queue.popleft()
         directions = [(1,0),(-1,0),(0,1),(0,-1)]
+        frames.append(distances.copy())
         for dx, dy in directions:
             nx , ny = x+dx, y+dy
             if 0 < nx < len(maze) and 0 < ny < len(maze[0]):
@@ -76,8 +67,8 @@ def get_path(start, goal):
         directions = [(1,0),(-1,0),(0,1),(0,-1)]
         for dx, dy in directions : 
             nx, ny = x+dx, y+dy
-            if 0 < nx < len(maze) and 0 < ny < len(maze[0]):
-                if maze[nx][ny] == 0 and distances[nx][ny] < best_distance:
+            if 0 < nx < len(maze_final) and 0 < ny < len(maze_final[0]):
+                if maze_final[nx][ny] == 1 and distances[nx][ny] < best_distance:
                     best_distance = distances[nx][ny]
                     best = (nx, ny)
         if best is None:
@@ -87,11 +78,47 @@ def get_path(start, goal):
     path.append(goal)
     return path
 
-floodfill(maze=maze, goal=goal)
-print(get_path(start=(5,5), goal=goal))
+floodfill(maze=maze_final, goal=goal)
+path = get_path(start=(1,1), goal=goal)
 
 print(distances)
 
-plt.imshow(maze, cmap="gray")
-plt.show()
 
+#Animation de la solution
+
+fig, ax1 = plt.subplots(figsize = (12, 6))
+
+ax1.imshow(maze_final, cmap="gray")
+ax1.set_title("labyrinthe réduite")
+ax1.axis('off')
+
+max_dist = np.where(distances == np.inf, 0, distances)
+max_dist = max_dist.max()
+vmax = max(max_dist, 1)
+
+ax1.plot(1,1,'go', markersize=8, label="Départ")
+ax1.plot(goal[1], goal[0],'ro', markersize=8, label="Arrivée")
+ax1.legend()
+
+robots, = ax1.plot([], [], 'bo', markersize=8)
+
+trace_robot, = ax1.plot([], [], '-', linewidth=3)
+
+path_array = np.array(path)
+Xs = []
+Ys = []
+
+def update(frame_idx):
+    if frame_idx < len(frames):
+        x, y = path_array[frame_idx]
+        robots.set_data([y],[x])
+
+        Xs.append(x)
+        Ys.append(y)
+        trace_robot.set_data(Ys, Xs)
+    return  [robots]
+
+ani = FuncAnimation(fig, update, frames=len(frames), interval = 50, repeat = False)
+
+plt.tight_layout()
+plt.show()
