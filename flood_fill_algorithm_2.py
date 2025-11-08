@@ -3,15 +3,10 @@ import matplotlib.pyplot as plt
 from collections import deque
 import cv2
 from matplotlib.animation import FuncAnimation
-import time
 
-
-#start time
-
-time_start = time.time()
 
 #traitement d'image du labyrinthe
-image = cv2.imread("WhatsApp Image 2025-11-06 at 19.34.58.jpeg", flags=cv2.IMREAD_GRAYSCALE)
+image = cv2.imread("WhatsApp Image 2025-10-24 at 17.55.22.jpeg", flags=cv2.IMREAD_GRAYSCALE)
 _, binary = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
 binary = cv2.bitwise_not(binary)
 
@@ -38,27 +33,23 @@ for col in maze_reduced_v:
         previous_col = col
 
 maze_final = np.array(cols_reduced).T
-np.savetxt("nex_maze_result.csv", maze_final, delimiter=",", fmt="%d")
 
 size = maze_final.shape
-print(size)
 
-goal = (51,15)
+goal = (15,7)
 distances = np.full(size, np.inf)
 distances[goal[0]][goal[1]] = 0
 
-#take the frames of the changements in distance to use it in animation
-#we use copy not deepcopy to get a reference in distance to every time there is a
-#difference, it will be added to the frame list.
 frames = []
 
 #flood fill algorithm
 def floodfill(maze, goal):
     queue = deque([goal])
+
     while queue:
         x,y = queue.popleft()
         directions = [(1,0),(-1,0),(0,1),(0,-1)]
-        frames.append(distances.copy())
+        # frames.append(distances.copy())
         for dx, dy in directions:
             nx , ny = x+dx, y+dy
             if 0 < nx < len(maze) and 0 < ny < len(maze[0]):
@@ -77,8 +68,8 @@ def get_path(start, goal):
         directions = [(1,0),(-1,0),(0,1),(0,-1)]
         for dx, dy in directions : 
             nx, ny = x+dx, y+dy
-            if 0 < nx < len(maze_final) and 0 < ny < len(maze_final[0]):
-                if maze_final[nx][ny] == 1 and distances[nx][ny] < best_distance:
+            if ((0 <= nx < len(maze_final)) and (0 < ny < len(maze_final[0])) 
+                and maze_final[nx][ny] == 1 and distances[nx][ny] < best_distance):
                     best_distance = distances[nx][ny]
                     best = (nx, ny)
         if best is None:
@@ -89,49 +80,6 @@ def get_path(start, goal):
     return path
 
 floodfill(maze=maze_final, goal=goal)
-path = get_path(start=(63,1), goal=goal)
+path = get_path(start=(31,1), goal=goal)
 
 print(distances)
-
-
-#Animation de la solution
-fig, ax1 = plt.subplots(figsize = (12, 6))
-
-ax1.imshow(maze_final, cmap="gray")
-ax1.set_title("labyrinthe réduite")
-ax1.axis('off')
-
-max_dist = np.where(distances == np.inf, 0, distances)
-max_dist = max_dist.max()
-vmax = max(max_dist, 1)
-
-ax1.plot(1,1,'go', markersize=8, label="Départ")#corrigez ce problème pour le rendre plus dynamique
-ax1.plot(goal[1], goal[0],'ro', markersize=8, label="Arrivée")
-ax1.legend()
-
-robots, = ax1.plot([], [], 'bo', markersize=8)
-
-trace_robot, = ax1.plot([], [], '-', linewidth=3)
-
-path_array = np.array(path)
-Xs = []
-Ys = []
-
-def update(frame_idx):
-    if frame_idx < len(frames):
-        x, y = path_array[frame_idx]
-        robots.set_data([y],[x])
-
-        Xs.append(x)
-        Ys.append(y)
-        trace_robot.set_data(Ys, Xs)
-    return  [robots]
-
-ani = FuncAnimation(fig, update, frames=len(frames), interval = 50, repeat = False)
-
-plt.tight_layout()
-
-#calculate the end time
-time_end = time.time()
-print(time_end-time_start)
-plt.show()
