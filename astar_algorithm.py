@@ -90,17 +90,17 @@ path = astar_algorithm(maze=maze_final, start=start, goal=(51,15))
 
 fig, ax = plt.subplots()
 ax.imshow(maze_final, cmap='gray')
-scat_path = ax.plot([], [], color='red', linewidth=2, label='Chemin trouvé')[0]
-ax.scatter(start[1], start[0], color="green", s=50, label="départ")
-ax.scatter(15, 51, color="red", s=50, label="Arrivée")
 
-def animate(i):
-    if i < len(path):
-        px, py = zip(*path[:i+1])
-        scat_path.set_data(py, px)
-    return scat_path
+if path:
+    px, py = zip(*path)
+    ax.plot(py, px, color='red', linewidth=2, label='Chemin trouvé')[0]
+    ax.scatter(start[1], start[0], color="green", s=50, label="départ")
+    ax.scatter(15, 51, color="red", s=50, label="Arrivée")
+    ax.legend()
+else:
+    print("path not found")
 
-ani = FuncAnimation(fig, animate, frames=len(path), interval=50, repeat=False)
+# ani = FuncAnimation(fig, animate, frames=len(path), interval=50, repeat=False)
 
 #finish_time
 total_time = time.time() - start_time
